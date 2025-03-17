@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+             xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+             targetNamespace="http://bpmn.io/schema/bpmn">
+  
+  <process id="supplier_request_process" name="Supplier Request Process" isExecutable="true">
+    
+    <startEvent id="startEvent" name="Начало"/>
+    
+    <task id="createRequest" name="Оформить заявку"/>
+    
+    <sequenceFlow sourceRef="startEvent" targetRef="createRequest"/>
+    
+    <task id="saveRequest" name="Сохранение заявки в БД SQL Server"/>
+    
+    <sequenceFlow sourceRef="createRequest" targetRef="saveRequest"/>
+    
+    <task id="sendToSupplier" name="Передача заявки поставщику"/>
+    
+    <sequenceFlow sourceRef="saveRequest" targetRef="sendToSupplier"/>
+    
+    <exclusiveGateway id="supplierDecision" name="Решение поставщика"/>
+    
+    <sequenceFlow sourceRef="sendToSupplier" targetRef="supplierDecision"/>
+    
+    <task id="approveRequest" name="Согласовать заявку"/>
+    
+    <sequenceFlow sourceRef="supplierDecision" targetRef="approveRequest">
+      <conditionExpression xsi:type="tFormalExpression">approved</conditionExpression>
+    </sequenceFlow>
+    
+    <task id="rejectRequest" name="Отклонить заявку"/>
+    
+    <sequenceFlow sourceRef="supplierDecision" targetRef="rejectRequest">
+      <conditionExpression xsi:type="tFormalExpression">rejected</conditionExpression>
+    </sequenceFlow>
+    
+    <intermediateCatchEvent id="timeout" name="Таймер (3 дня)">
+      <timerEventDefinition>
+        <timeDuration>PT72H</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+    
+    <sequenceFlow sourceRef="supplierDecision" targetRef="timeout"/>
+    
+    <task id="updateStatusApproved" name="Обновление статуса на 'Согласована'"/>
+    
+    <sequenceFlow sourceRef="approveRequest" targetRef="updateStatusApproved"/>
+    
+    <task id="updateStatusRejected" name="Обновление статуса на 'Отклонена'"/>
+    
+    <sequenceFlow sourceRef="rejectRequest" targetRef="updateStatusRejected"/>
+    <sequenceFlow sourceRef="timeout" targetRef="updateStatusRejected"/>
+    
+    <endEvent id="endEvent" name="Конец"/>
+    
+    <sequenceFlow sourceRef="updateStatusApproved" targetRef="endEvent"/>
+    <sequenceFlow sourceRef="updateStatusRejected" targetRef="endEvent"/>
+    
+  </process>
+</definitions>
